@@ -1,3 +1,3 @@
-defmodule TT.MetricsExporter do
+defmodule Metrics.Exporter do
   use Prometheus.PlugExporter
 end

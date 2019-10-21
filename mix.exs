@@ -14,7 +14,7 @@ defmodule ExHater.MixProject do
   # Run "mix help compile.app" to learn about applications.
   def application do
     [
-      extra_applications: [:logger, :extwitter],
+      extra_applications: [:logger, :extwitter, :prometheus_ex, :cowboy],
       mod: {TT.Application, []}
     ]
   end
@@ -24,10 +24,10 @@ defmodule ExHater.MixProject do
     [
       {:oauther, "~> 1.1"},
       {:extwitter, "~> 0.8"},
-      {:plug_cowboy, "~> 2.1"},
-      {:poison, "~> 3.0"},
+      {:plug_cowboy, "~> 2.1.0"},
       {:prometheus_ex, "~> 3.0"},
-      {:prometheus_plugs, "~> 1.1"}
+      {:prometheus_plugs, "~> 1.1.5"},
+      {:prometheus_process_collector, "~> 1.4"}
     ]
   end
 end
