@@ -1,10 +1,25 @@
 defmodule Plug.Endpoint do
-  use Plug.Router
+  import Plug.Conn
 
-  plug(Plug.Logger)
-  plug(Metrics.Exporter)
+  def init(%{}), do: true
 
-  get "/ping" do
-    send_resp(conn, 200, "pong!")
+  def call(%Plug.Conn{request_path: route} = conn, _opts) do
+
+    case route do
+      # "/metrics" ->
+      #   plug Metrics.Exporter
+      #   #plug(Metrics.Exporter, %{})
+      "/ping" ->
+        conn
+        |> put_resp_content_type("text/plain")
+        |> send_resp(200, "pong")
+        |> halt()
+    end
+  end
+
+  def call(conn, _opts) do
+    conn
+    |> put_resp_content_type("text/plain")
+    |> send_resp(200, "Hello World!\n")
   end
 end
