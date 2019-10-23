@@ -4,16 +4,15 @@ defmodule Plug.Endpoint do
   def init(%{}), do: true
 
   def call(%Plug.Conn{request_path: route} = conn, _opts) do
-
     case route do
-      # "/metrics" ->
-      #   plug Metrics.Exporter
-      #   #plug(Metrics.Exporter, %{})
       "/ping" ->
         conn
         |> put_resp_content_type("text/plain")
         |> send_resp(200, "pong")
         |> halt()
+
+      _ ->
+        send_resp(conn, 404, "oops... Nothing here :(")
     end
   end
 

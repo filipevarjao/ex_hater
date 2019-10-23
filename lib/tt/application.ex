@@ -12,7 +12,14 @@ defmodule TT.Application do
         plug: Plug.Pipeline,
         options: [port: 4001],
         server: true
-      )
+      ),
+      %{
+        id: TT.Server,
+        start: {TT.Server, :start_link, []},
+        restart: :permanent,
+        shutdown: 5000,
+        type: :worker
+      }
     ]
 
     options = [strategy: :one_for_one, name: TT.Supervisor]

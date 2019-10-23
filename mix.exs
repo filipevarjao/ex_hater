@@ -27,7 +27,9 @@ defmodule ExHater.MixProject do
       {:plug_cowboy, "~> 2.1.0"},
       {:prometheus_ex, "~> 3.0"},
       {:prometheus_plugs, "~> 1.1.5"},
-      {:prometheus_process_collector, "~> 1.4"}
+      {:prometheus_process_collector, "~> 1.4"},
+      {:poison, "~> 3.0"},
+      {:ex_watson_tone, git: "https://github.com/filipevarjao/ex_watson_tone.git"}
     ]
   end
 end
