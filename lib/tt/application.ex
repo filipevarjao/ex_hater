@@ -10,7 +10,7 @@ defmodule TT.Application do
       Plug.Cowboy.child_spec(
         scheme: :http,
         plug: Plug.Pipeline,
-        options: [port: 4001],
+        options: [port: 4000],
         server: true
       ),
       %{
