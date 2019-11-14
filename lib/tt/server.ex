@@ -2,6 +2,7 @@ defmodule TT.Server do
   use GenServer
 
   alias :mnesia, as: Mnesia
+  alias ToneAnalyzer
 
   ## client API
 
@@ -9,9 +10,16 @@ defmodule TT.Server do
     GenServer.start_link(__MODULE__, :ok, name: :tt_server)
   end
 
-  def get_state do
-    state = GenServer.call(:tt_server, {:get_state})
-    IO.puts("CURRENT STATE #{inspect(state)}")
+  def show(id) do
+    GenServer.call(:tt_server, {:show, id})
+  end
+
+  def get_data do
+    GenServer.call(:tt_server, {:get_data})
+  end
+
+  def tone_analyze(content) do
+    GenServer.cast(:tt_server, {:analyze, content})
   end
 
   ## callbacks
@@ -21,14 +29,13 @@ defmodule TT.Server do
     Mnesia.create_schema([node()])
     Mnesia.start()
 
-    Mnesia.create_table(Tdata,
+    Mnesia.create_table(Tone,
       attributes: [
+        :id,
+        :type,
         :created_at,
-        :favorite_count,
         :text,
         :id_str,
-        :full_text,
-        :retweet_count,
         :tone
       ],
       disc_copies: [node()]
@@ -39,20 +46,70 @@ defmodule TT.Server do
   end
 
   @impl true
+  def handle_call({:show, id}, _, state) do
+    resp = select_one(id)
+    {:reply, resp, state}
+  end
+
+  @impl true
   def handle_call({:get_state}, _from, state) do
     {:reply, state, state}
   end
 
   @impl true
+  def handle_call({:get_data}, _from, state) do
+    {:atomic, all} = select_all()
+    {:reply, all, state}
+  end
+
+  @impl true
+  def handle_cast({:analyze, content}, state) do
+    {:ok, %{body: body}} =
+      ToneAnalyzer.tone_chat(%{file: content, header: {"Content-Type", "application/json"}})
+
+    {:atomic, :ok} =
+      transaction(%{
+        type: :chat,
+        created_at: "",
+        text: content,
+        id_str: "",
+        tone: body
+      })
+
+    {:noreply, state}
+  end
+
+  @impl true
   def handle_info(:collect, _state) do
     tws = collect()
-      # |> processing(state)
-
     Process.send_after(:tt_server, :collect, 30000)
     {:noreply, tws}
   end
 
   ## private
+
+  defp select_one(id) do
+    {:atomic, [resp]} = Mnesia.transaction(fn ->
+      Mnesia.match_object({Tone, String.to_integer(id), :_, :_, :_, :_, :_})
+    end)
+
+    Tuple.to_list(resp)
+  end
+
+  defp select_all do
+    Mnesia.transaction(fn ->
+      Mnesia.select(Tone, [{{Tone, :"$1", :"$2", :"$3", :"$4", :"$5", :"$6"}, [], [:"$$"]}])
+    end)
+  end
+
+  defp transaction(data) do
+    id = Mnesia.table_info(Tone, :size) + 1
+    data_write = fn ->
+      Mnesia.write({Tone, id, data.type, data.created_at, data.text, data.id_str, data.tone})
+    end
+
+    Mnesia.transaction(data_write)
+  end
 
   defp collect do
     screen_name = Application.get_env(:extwitter, :screen_name)
@@ -68,8 +125,4 @@ defmodule TT.Server do
       }
     end
   end
-
-  # defp processing(tws, state) when is_list(tws) do
-
-  # end
 end
