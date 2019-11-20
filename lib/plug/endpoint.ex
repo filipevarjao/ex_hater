@@ -8,6 +8,13 @@ defmodule Plug.Endpoint do
 
   def call(%Plug.Conn{request_path: route, method: "GET"} = conn, _opts) do
     case route do
+      "/timeline" ->
+        state = TT.Server.get_state()
+
+        conn
+        |> put_resp_content_type("text/html")
+        |> send_resp(200, Templates.timeline(state))
+
       "/list" ->
         content = TT.Server.get_data()
 
@@ -21,21 +28,27 @@ defmodule Plug.Endpoint do
         |> send_resp(200, Templates.upload_html())
 
       some ->
-        case String.match?(some, ~r/show/) do
-          false ->
-            conn
-            |> resp(:found, "")
-            |> put_resp_header("location", "/list")
-
-          true ->
-            [id] = String.split(some, "/show/", trim: true)
+        case String.split(some, "/", trim: true) do
+          ["show", id] ->
             content = TT.Server.show(id)
 
             conn
             |> put_resp_content_type("text/plain")
-            |> send_resp(200, Enum.at(content, 6)) # magic number, six is the position at mensia table
-        end
+            # magic number, six is the position at mensia table
+            |> send_resp(200, Enum.at(content, 6))
 
+          ["tone", id] ->
+            TT.Server.tone(id)
+
+            conn
+            |> resp(:found, "")
+            |> put_resp_header("location", "/list")
+
+          _ ->
+            conn
+            |> resp(:found, "")
+            |> put_resp_header("location", "/list")
+        end
     end
   end
 
