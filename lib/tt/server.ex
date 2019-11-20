@@ -14,12 +14,20 @@ defmodule TT.Server do
     GenServer.call(:tt_server, {:show, id})
   end
 
+  def tone(id) do
+    GenServer.call(:tt_server, {:tone, id})
+  end
+
   def get_data do
-    GenServer.call(:tt_server, {:get_data})
+    GenServer.call(:tt_server, :get_data)
   end
 
   def tone_analyze(content) do
     GenServer.cast(:tt_server, {:analyze, content})
+  end
+
+  def get_state do
+    GenServer.call(:tt_server, :get_state)
   end
 
   ## callbacks
@@ -52,14 +60,44 @@ defmodule TT.Server do
   end
 
   @impl true
+  def handle_call({:tone, id}, _, state) do
+    tweet = Enum.find(state, fn tweet -> Map.get(tweet, :id_str) == id end)
+
+    text =
+      if tweet.full_text do
+        tweet.full_text
+      else
+        tweet.text
+      end
+
+    {:ok, %{body: body}} = ToneAnalyzer.tone(%{text: text, header: "Content-Type: plain/text"})
+
+    {:atomic, :ok} =
+      transaction(%{
+        type: :twitter,
+        created_at: tweet.created_at,
+        text: text,
+        id_str: id,
+        tone: body
+      })
+
+    {:reply, body, state}
+  end
+
+  @impl true
   def handle_call({:get_state}, _from, state) do
     {:reply, state, state}
   end
 
   @impl true
-  def handle_call({:get_data}, _from, state) do
+  def handle_call(:get_data, _from, state) do
     {:atomic, all} = select_all()
     {:reply, all, state}
+  end
+
+  @impl true
+  def handle_call(:get_state, _from, state) do
+    {:reply, state, state}
   end
 
   @impl true
@@ -89,9 +127,10 @@ defmodule TT.Server do
   ## private
 
   defp select_one(id) do
-    {:atomic, [resp]} = Mnesia.transaction(fn ->
-      Mnesia.match_object({Tone, String.to_integer(id), :_, :_, :_, :_, :_})
-    end)
+    {:atomic, [resp]} =
+      Mnesia.transaction(fn ->
+        Mnesia.match_object({Tone, String.to_integer(id), :_, :_, :_, :_, :_})
+      end)
 
     Tuple.to_list(resp)
   end
@@ -104,6 +143,7 @@ defmodule TT.Server do
 
   defp transaction(data) do
     id = Mnesia.table_info(Tone, :size) + 1
+
     data_write = fn ->
       Mnesia.write({Tone, id, data.type, data.created_at, data.text, data.id_str, data.tone})
     end
