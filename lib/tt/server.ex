@@ -46,6 +46,7 @@ defmodule TT.Server do
         :id_str,
         :tone
       ],
+      type: :ordered_set,
       disc_copies: [node()]
     )
 
@@ -85,7 +86,7 @@ defmodule TT.Server do
   end
 
   @impl true
-  def handle_call({:get_state}, _from, state) do
+  def handle_call(:get_state, _from, state) do
     {:reply, state, state}
   end
 
@@ -93,11 +94,6 @@ defmodule TT.Server do
   def handle_call(:get_data, _from, state) do
     {:atomic, all} = select_all()
     {:reply, all, state}
-  end
-
-  @impl true
-  def handle_call(:get_state, _from, state) do
-    {:reply, state, state}
   end
 
   @impl true

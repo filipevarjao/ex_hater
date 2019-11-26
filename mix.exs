@@ -6,8 +6,20 @@ defmodule ExHater.MixProject do
       app: :ex_hater,
       version: "0.1.0",
       elixir: "~> 1.9",
+      elixirc_paths: elixirc_paths(Mix.env()),
       start_permanent: Mix.env() == :prod,
-      deps: deps()
+      deps: deps(),
+
+      # Testing
+      test_coverage: [
+        tool: ExCoveralls
+      ],
+      preferred_cli_env: [
+        coveralls: :test,
+        "coveralls.detail": :test,
+        "coveralls.post": :test,
+        "coveralls.html": :test
+      ]
     ]
   end
 
@@ -32,7 +44,12 @@ defmodule ExHater.MixProject do
       {:prometheus_process_collector, "~> 1.4"},
       {:poison, "~> 3.0"},
       # watson API
-      {:ex_watson_tone, git: "https://github.com/filipevarjao/ex_watson_tone.git"}
+      {:ex_watson_tone, git: "https://github.com/filipevarjao/ex_watson_tone.git"},
+      # Test
+      {:excoveralls, "~> 0.9", only: :test}
     ]
   end
+
+  defp elixirc_paths(:test), do: ["lib", "test/"]
+  defp elixirc_paths(_), do: ["lib"]
 end
